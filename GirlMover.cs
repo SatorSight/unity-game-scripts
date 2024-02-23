@@ -125,7 +125,7 @@ public class GirlMover : MonoBehaviour
     private float _rotationVelocity;
     private float inputMagnitude;
     private float speedOffset;
-
+    private static readonly int Attacking = Animator.StringToHash("Attacking");
 
 
     private void Awake()
@@ -250,6 +250,7 @@ public class GirlMover : MonoBehaviour
             firstCamera.SetActive(false);
             aimCamera.SetActive(true);
             anim.SetBool("Aiming", true);
+            // TODO: remove
             pistolMover.aiming = true;
 
             if (Input.GetMouseButtonDown(0))
@@ -261,10 +262,11 @@ public class GirlMover : MonoBehaviour
         }
         else
         {
-            if (anim.GetBool("Aiming"))
-            {
-                transform.rotation = Quaternion.Euler(0, camera.transform.eulerAngles.y, 0);
-            }
+            // if (anim.GetBool("Aiming"))
+            // {
+            //     // TODO: Make offset so the girl is facing slightly to the right
+            //     transform.rotation = Quaternion.Euler(0, camera.transform.eulerAngles.y, 0);
+            // }
 
             firstCamera.SetActive(true);
             aimCamera.SetActive(false);
@@ -297,7 +299,7 @@ public class GirlMover : MonoBehaviour
 
                 ammo--;
 
-                impulseSource.GenerateImpulse(camera.transform.up * 0.3f);
+                impulseSource.GenerateImpulse(camera.transform.up * 0.1f);
                 bool hit = Physics.Raycast(rayFromMe, aimDir, out hitInfo, 1000f, ~IgnoreMe);
                 muzzleFire.active = true;
                 StartCoroutine(ShotParticles());
@@ -315,6 +317,7 @@ public class GirlMover : MonoBehaviour
                     if (col && col.tag == "Enemy")
                     {
                         EnemyController other = (EnemyController)col.GetComponent(typeof(EnemyController));
+                        // TODO: rename wtf
                         other.damagedWithKatana();
                     }
                 }
@@ -384,6 +387,7 @@ public class GirlMover : MonoBehaviour
             rotateCharacterWithCamera(moveVec);
         }
 
+        
         // _targetRotation set in rotateCharacter
         Vector3 targetDirection2 = Quaternion.Euler(0.0f, _targetRotation, 0.0f) * Vector3.forward;
         controller.Move(targetDirection2.normalized * (_speed * Time.deltaTime) +
@@ -477,7 +481,23 @@ public class GirlMover : MonoBehaviour
     private void rotateCharacterWithCamera(Vector3 moveVec)
     {
         _targetRotation = Mathf.Atan2(moveVec.x, moveVec.z) * Mathf.Rad2Deg + camera.transform.eulerAngles.y;
-        transform.rotation = aimCamera.transform.rotation;
+        
+        
+        var rotationAmount = 10f;
+        
+        Quaternion cameraRotation = aimCamera.transform.rotation;
+
+        // Create a rotation representing rotation to the right
+        Quaternion rightRotation = Quaternion.AngleAxis(rotationAmount, Vector3.up);
+
+        // Combine the camera's rotation with the right rotation
+        Quaternion newRotation = cameraRotation * rightRotation;
+
+        // Apply the new rotation to the character
+        transform.rotation = newRotation;
+        
+        
+        // transform.rotation = aimCamera.transform.rotation;
     }
 
     public void addToInventory()
@@ -525,9 +545,9 @@ public class GirlMover : MonoBehaviour
     {
         if (Input.GetMouseButtonDown(0))
         {
-            if (anim.GetBool("Attacking") == false)
+            if (anim.GetBool(Attacking) == false)
             {
-                anim.SetBool("Attacking", true);
+                anim.SetBool(Attacking, true);
                 StartCoroutine(Attack());
             }
         }
@@ -705,8 +725,12 @@ public class GirlMover : MonoBehaviour
 
     IEnumerator Attack()
     {
-        yield return new WaitForSeconds(0.7f);
-        anim.SetBool("Attacking", false);
+        yield return new WaitForSeconds(0.4f);
+        anim.SetBool("Slashing", true);
+        yield return new WaitForSeconds(0.2f);
+        anim.SetBool("Slashing", false);
+        yield return new WaitForSeconds(0.1f);
+        anim.SetBool(Attacking, false);
     }
 
     IEnumerator Damaged()

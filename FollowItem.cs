@@ -18,6 +18,9 @@ public class FollowItem : MonoBehaviour
         camera = Camera.main;
         player = GameObject.FindWithTag("Player");
         dialog = FindObjectOfType<DialogueManager>();
+        
+        Debug.Log("dialog");
+        Debug.Log(dialog);
     }
 
     void Update()
@@ -134,7 +137,8 @@ public class FollowItem : MonoBehaviour
 
         // check if angle between camera forward vector and object->camera vector are facing almost same direction
         // feels around 20-30 degrees around center
-        if (cameraAngle > 0.99f)
+        // Debug.Log(cameraAngle);
+        if (cameraAngle > 0.9f)
         {
             return true;
         }

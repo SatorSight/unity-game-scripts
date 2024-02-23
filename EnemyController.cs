@@ -14,6 +14,7 @@ public class EnemyController : MonoBehaviour
     private Rigidbody body;
     private GameObject[] blood;
     private float damagedStarts = 0f;
+    public bool debugged = false;
 
     public LayerMask IgnoreMe;
     public float health = 5f;
@@ -66,37 +67,109 @@ public class EnemyController : MonoBehaviour
     {
         float distance = Vector3.Distance(transform.position, player.transform.position);
 
-        // if far from player, move, otherwise don't move and attack
-        if (distance > 1f)
+        if (anim.GetBool("Damaged"))
         {
-            anim.SetBool("Attacking", false);
-            agent.isStopped = false;
-
-            if (playerInSight())
-            {
-                // hitInfo is set inside playerInSight function
-                Collider col = hitInfo.collider;
-                if (col && col.tag == "Player")
-                {
-                    agent.destination = player.transform.position;
-                }
-            }
+            agent.isStopped = true;
+            return;
         }
-        else
+
+        // attack instead of running if close enough
+        if (distance < 0.6f)
         {
             AttackPlayer();
             agent.isStopped = true;
         }
+        // if player is close, aggro
+        else if (distance < 5f && playerInSight())
+        {
+            chase();
+        }
+        // if player is far but in cone view, aggro
+        else if (distance < 20f && isInConeView() && playerInSight())
+        {
+            chase();
+        }
+        // if player is too far away, stop
+        else if (distance > 20f)
+        {
+            agent.isStopped = true;
+        }
+        // else
+        // {
+        //     agent.isStopped = true;
+        // }
+
+        // if far from player, move, otherwise don't move and attack
+        // if (distance > 1f)
+        // {
+        //     anim.SetBool("Attacking", false);
+        //     agent.isStopped = false;
+        //
+        //     if (playerInSight())
+        //     {
+        //         // hitInfo is set inside playerInSight function
+        //         Collider col = hitInfo.collider;
+        //         if (col && col.tag == "Player")
+        //         {
+        //             agent.destination = player.transform.position;
+        //         }
+        //     }
+        // }
+        // else
+        // {
+        //     AttackPlayer();
+        //     agent.isStopped = true;
+        // }
+    }
+
+    private void chase()
+    {
+        anim.SetBool("Attacking", false);
+        agent.isStopped = false;
+        agent.destination = player.transform.position;
+    }
+
+    // private void stop()
+    // {
+    //     agent.isStopped = true;
+    // }
+    
+    
+    private bool isInConeView()
+    {
+        Vector3 selfForwardVec = transform.forward;
+        Vector3 playerVec = player.transform.position - transform.position;
+
+        selfForwardVec.Normalize();
+        playerVec.Normalize();
+
+        float viewAngle = Vector3.Dot(selfForwardVec, playerVec);
+
+        // if (debugged)
+        // {
+        //     Debug.Log(viewAngle);    
+        // }
+
+        if (viewAngle > 0.3f)
+        {
+            return true;
+        }
+        return false;
     }
 
     private bool playerInSight()
     {
-        Vector3 rayFromMe = transform.position;
+        var rayFromMe = transform.position;
         rayFromMe.y += 1f;
 
         // (un)comment to debug ray
-        Debug.DrawRay(rayFromMe, (player.transform.position - transform.position), Color.red);
-        return Physics.Raycast(rayFromMe, (player.transform.position - transform.position), out hitInfo, 1000f, ~IgnoreMe);
+        // Debug.DrawRay(rayFromMe, (player.transform.position - transform.position), Color.red);
+        var rayHits = Physics.Raycast(rayFromMe, (player.transform.position - transform.position), out hitInfo, 1000f, ~IgnoreMe);
+        var col = hitInfo.collider;
+        return rayHits && col && col.CompareTag("Player");
+        // {
+        //     agent.destination = player.transform.position;
+        // }
     }
 
     private void handleMoveAnimation()
@@ -221,5 +294,6 @@ public class EnemyController : MonoBehaviour
         yield return new WaitForSeconds(0.5f);
         anim.SetBool("Damaged", false);
         hideBlood();
+        agent.isStopped = false;
     }
 }
